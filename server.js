@@ -38,7 +38,13 @@ app.get("/debug-env", (req, res) => {
 });
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/api/products", productRoutes);
+// Cache middleware for product listing
+app.use("/api/products", (req, res, next) => {
+  if (req.method === "GET") {
+    res.set("Cache-Control", "public, max-age=60, s-maxage=60, stale-while-revalidate=300");
+  }
+  next();
+}, productRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/admin", adminRoutes);
 
