@@ -10,11 +10,19 @@ function normalizeArabic(str) {
 }
 
 exports.getProducts = async (req, res) => {
-  const { q } = req.query;
-  if (!q) return res.json(await Product.find());
+  const { q, fields } = req.query;
+  
+  // Select only needed fields for home page listing
+  const selectFields = fields || '';
+  
+  if (!q) {
+    const query = Product.find().lean();
+    if (selectFields) query.select(selectFields);
+    return res.json(await query);
+  }
 
   const normalized = normalizeArabic(q);
-  const products = await Product.find();
+  const products = await Product.find().lean();
   const filtered = products.filter((p) =>
     normalizeArabic(p.name).includes(normalized)
   );
