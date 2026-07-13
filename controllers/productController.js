@@ -13,7 +13,7 @@ exports.getProducts = async (req, res) => {
   const { q, fields } = req.query;
   
   // Select only needed fields for home page listing
-  const selectFields = fields || '';
+  const selectFields = fields ? fields.replace(/,/g, ' ') : '';
   
   if (!q) {
     const query = Product.find().lean();
