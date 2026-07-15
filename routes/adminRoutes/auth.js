@@ -17,8 +17,23 @@ router.post("/login", async (req, res) => {
     if (!admin)
       return res.status(401).json({ error: "بيانات غير صحيحة" });
 
+    if (admin.isLocked()) {
+      return res.status(423).json({ error: "الحساب مقفل مؤقتاً، حاول لاحقاً" });
+    }
+
     const match = await admin.comparePassword(password);
-    if (!match) return res.status(401).json({ error: "بيانات غير صحيحة" });
+    if (!match) {
+      admin.loginAttempts += 1;
+      if (admin.loginAttempts >= 5) {
+        admin.lockUntil = new Date(Date.now() + 30 * 60 * 1000);
+      }
+      await admin.save();
+      return res.status(401).json({ error: "بيانات غير صحيحة" });
+    }
+
+    admin.loginAttempts = 0;
+    admin.lockUntil = undefined;
+    await admin.save();
 
     const token = jwt.sign(
       { id: admin._id, email: admin.email },
@@ -33,7 +48,6 @@ router.post("/login", async (req, res) => {
         secure: isProd,
         sameSite: isProd ? "none" : "lax",
         maxAge: 8 * 60 * 60 * 1000,
-        domain: isProd ? undefined : undefined,
       })
       .json({ success: true });
   } catch (err) {

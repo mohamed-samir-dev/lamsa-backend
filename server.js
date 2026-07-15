@@ -2,6 +2,8 @@ require("dotenv").config();
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const productRoutes = require("./routes/productRoutes");
@@ -14,6 +16,7 @@ const app = express();
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
   .split(",").map((o) => o.trim());
 
+app.use(helmet());
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
@@ -25,17 +28,13 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: "محاولات كثيرة، حاول بعد 15 دقيقة" } });
+app.use("/api/admin/login", loginLimiter);
+
 app.get("/", (req, res) => {
   res.json({ message: "API is running..." });
 });
 
-app.get("/debug-env", (req, res) => {
-  res.json({
-    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "MISSING",
-    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ? "SET" : "MISSING",
-    CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? "SET" : "MISSING",
-  });
-});
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Cache middleware for product listing
@@ -45,7 +44,8 @@ app.use("/api/products", (req, res, next) => {
   }
   next();
 }, productRoutes);
-app.use("/api/checkout", checkoutRoutes);
+const checkoutLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { ok: false, error: "طلبات كثيرة، حاول لاحقاً" } });
+app.use("/api/checkout", checkoutLimiter, checkoutRoutes);
 app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;

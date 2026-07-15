@@ -5,7 +5,7 @@ const { authMiddleware } = require("./middleware");
 const router = express.Router();
 
 // GET /api/admin/orders
-router.get("/orders", async (req, res) => {
+router.get("/orders", authMiddleware, async (req, res) => {
   try {
     const orders = await Checkout.find().sort({ createdAt: -1 });
     res.json(orders);
