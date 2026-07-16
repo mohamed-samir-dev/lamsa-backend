@@ -13,7 +13,7 @@ const router = express.Router();
 router.post("/company/upload/:field", authMiddleware, upload.single("image"), async (req, res) => {
   try {
     const { field } = req.params;
-    const allowed = ["logo", "header", "footer", "stamp"];
+    const allowed = ["logo", "header", "footer", "stamp", "cancelStamp"];
     if (!allowed.includes(field)) return res.status(400).json({ error: "حقل غير مسموح" });
     if (!req.file) return res.status(400).json({ error: "لم يتم رفع صورة" });
     const result = await uploadToCloudinary(req.file.buffer, "company");
@@ -34,7 +34,7 @@ router.post("/company/upload/:field", authMiddleware, upload.single("image"), as
 router.delete("/company/image/:field", authMiddleware, async (req, res) => {
   try {
     const { field } = req.params;
-    const allowed = ["logo", "header", "footer", "stamp"];
+    const allowed = ["logo", "header", "footer", "stamp", "cancelStamp"];
     if (!allowed.includes(field)) return res.status(400).json({ error: "حقل غير مسموح" });
     const company = await Company.findOne();
     if (!company) return res.json({ success: true });
