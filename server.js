@@ -1,8 +1,18 @@
 require("dotenv").config();
+const cluster = require("cluster");
+const os = require("os");
+
+if (cluster.isPrimary) {
+  const numCPUs = os.cpus().length;
+  for (let i = 0; i < numCPUs; i++) cluster.fork();
+  cluster.on("exit", () => cluster.fork());
+} else {
+
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
@@ -17,6 +27,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
   .split(",").map((o) => o.trim());
 
 app.use(helmet());
+app.use(compression());
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
@@ -49,4 +60,6 @@ app.use("/api/checkout", checkoutLimiter, checkoutRoutes);
 app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Worker ${process.pid} running on port ${PORT}`));
+
+} // end cluster worker
