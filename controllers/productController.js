@@ -1,8 +1,8 @@
 const Product = require("../models/Product");
 
-// In-memory cache
+// Shared cache (per worker, but TTL prevents stale data)
 const cache = new Map();
-const CACHE_TTL = 60 * 1000; // 60 seconds
+const CACHE_TTL = 60 * 1000;
 
 function getCached(key) {
   const entry = cache.get(key);
@@ -12,6 +12,8 @@ function getCached(key) {
 }
 
 function setCached(key, data) {
+  // Limit cache size to prevent memory bloat
+  if (cache.size > 100) cache.clear();
   cache.set(key, { data, ts: Date.now() });
 }
 
@@ -27,51 +29,81 @@ function normalizeArabic(str) {
 }
 
 exports.getProducts = async (req, res) => {
-  const { q, fields } = req.query;
-  const selectFields = fields ? fields.replace(/,/g, " ") : "";
+  try {
+    const { q, fields, page, limit } = req.query;
+    const selectFields = fields ? fields.replace(/,/g, " ") : "";
 
-  if (!q) {
-    const cacheKey = `products:${selectFields}`;
+    // Search — no cache, paginated
+    if (q) {
+      const normalized = normalizeArabic(q);
+      const pageNum = Math.max(1, parseInt(page) || 1);
+      const limitNum = Math.min(50, parseInt(limit) || 20);
+      const products = await Product.find({
+        name: { $regex: normalized, $options: "i" },
+      }).select(selectFields).limit(limitNum).skip((pageNum - 1) * limitNum).lean();
+      return res.json(products);
+    }
+
+    // Paginated listing with cache
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, parseInt(limit) || 20);
+    const cacheKey = `products:${selectFields}:${pageNum}:${limitNum}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
-    const query = Product.find().lean();
-    if (selectFields) query.select(selectFields);
-    const products = await query;
-    setCached(cacheKey, products);
-    return res.json(products);
+    const query = Product.find().select(selectFields).skip((pageNum - 1) * limitNum).limit(limitNum).lean();
+    const [products, total] = await Promise.all([query, Product.countDocuments()]);
+    const result = { products, total, page: pageNum, pages: Math.ceil(total / limitNum) };
+    setCached(cacheKey, result);
+    return res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
-
-  // Search using MongoDB regex instead of fetching all then filtering in memory
-  const normalized = normalizeArabic(q);
-  const products = await Product.find({
-    name: { $regex: normalized, $options: "i" },
-  }).lean();
-  res.json(products);
 };
 
 exports.getProduct = async (req, res) => {
-  const product = await Product.findById(req.params.id);
-  if (!product) return res.status(404).json({ message: "Product not found" });
-  res.json(product);
+  try {
+    const cacheKey = `product:${req.params.id}`;
+    const cached = getCached(cacheKey);
+    if (cached) return res.json(cached);
+
+    const product = await Product.findById(req.params.id).lean();
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    setCached(cacheKey, product);
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 exports.createProduct = async (req, res) => {
-  const product = await Product.create(req.body);
-  exports.invalidateCache();
-  res.status(201).json(product);
+  try {
+    const product = await Product.create(req.body);
+    exports.invalidateCache();
+    res.status(201).json(product);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 exports.updateProduct = async (req, res) => {
-  const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!product) return res.status(404).json({ message: "Product not found" });
-  exports.invalidateCache();
-  res.json(product);
+  try {
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    exports.invalidateCache();
+    res.json(product);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 exports.deleteProduct = async (req, res) => {
-  const product = await Product.findByIdAndDelete(req.params.id);
-  if (!product) return res.status(404).json({ message: "Product not found" });
-  exports.invalidateCache();
-  res.json({ message: "Product deleted" });
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    exports.invalidateCache();
+    res.json({ message: "Product deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
