@@ -100,4 +100,14 @@ router.delete("/devices/log/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// DELETE /api/admin/devices/logs/all
+router.delete("/devices/logs/all", authMiddleware, async (req, res) => {
+  try {
+    await DeviceLog.deleteMany({});
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ success: false, error: "خطأ في الخادم" });
+  }
+});
+
 module.exports = router;
