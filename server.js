@@ -19,6 +19,7 @@ const connectDB = require("./config/db");
 const productRoutes = require("./routes/productRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const { checkBlockedDevice } = require("./middlewares/checkBlockedDevice");
 
 connectDB();
 
@@ -52,14 +53,14 @@ app.get("/", (req, res) => {
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Cache middleware for product listing
-app.use("/api/products", (req, res, next) => {
+app.use("/api/products", checkBlockedDevice, (req, res, next) => {
   if (req.method === "GET") {
     res.set("Cache-Control", "public, max-age=60, s-maxage=60, stale-while-revalidate=300");
   }
   next();
 }, productRoutes);
 const checkoutLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { ok: false, error: "طلبات كثيرة، حاول لاحقاً" } });
-app.use("/api/checkout", checkoutLimiter, checkoutRoutes);
+app.use("/api/checkout", checkBlockedDevice, checkoutLimiter, checkoutRoutes);
 app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
