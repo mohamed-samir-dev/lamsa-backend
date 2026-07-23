@@ -61,7 +61,7 @@ async function listBlockedDevices({ page = 1, limit = 20, search = "" }) {
           { ip: { $regex: search, $options: "i" } },
         ],
       }
-    : {};
+    : { isActive: true };
 
   const [devices, total] = await Promise.all([
     BlockedDevice.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
