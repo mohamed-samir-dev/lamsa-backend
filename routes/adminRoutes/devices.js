@@ -10,6 +10,19 @@ const {
 const BlockedDevice = require("../../models/BlockedDevice");
 const DeviceLog = require("../../models/DeviceLog");
 
+// GET /api/devices/check?fp=xxx&ip=xxx  (called from Next.js middleware)
+router.get("/check", async (req, res) => {
+  try {
+    const fp = typeof req.query.fp === "string" ? req.query.fp.slice(0, 64) : null;
+    const ip = typeof req.query.ip === "string" ? req.query.ip.slice(0, 45) : null;
+    const { findBlockedDevice } = require("../../services/deviceService");
+    const blocked = await findBlockedDevice(fp, ip);
+    return res.json({ blocked: !!blocked });
+  } catch {
+    res.json({ blocked: false });
+  }
+});
+
 // GET /api/admin/devices/logs
 router.get("/devices/logs", authMiddleware, async (req, res) => {
   try {
