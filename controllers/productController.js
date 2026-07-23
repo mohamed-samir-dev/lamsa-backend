@@ -30,10 +30,11 @@ function normalizeArabic(str) {
 
 exports.getProducts = async (req, res) => {
   try {
-    const { q, fields, page, limit, brand } = req.query;
+    const { q, fields, page, limit, brand, category } = req.query;
     const selectFields = fields ? fields.replace(/,/g, " ") : "";
     const filter = {};
     if (brand) filter.brand = { $regex: new RegExp(`^${brand}$`, "i") };
+    if (category) filter.category = { $regex: new RegExp(category, "i") };
 
     // Search — no cache, paginated
     if (q) {
@@ -50,7 +51,7 @@ exports.getProducts = async (req, res) => {
     // Paginated listing with cache
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, parseInt(limit) || 20);
-    const cacheKey = `products:${brand || ""}:${selectFields}:${pageNum}:${limitNum}`;
+    const cacheKey = `products:${brand || ""}:${category || ""}:${selectFields}:${pageNum}:${limitNum}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
