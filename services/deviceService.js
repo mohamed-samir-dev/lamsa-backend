@@ -9,14 +9,14 @@ async function findBlockedDevice(fingerprint, ip) {
   return BlockedDevice.findOne({ $or: conditions }).lean();
 }
 
-async function upsertDeviceLog(fingerprint, ip, userAgent, path) {
+async function upsertDeviceLog(fingerprint, ip, userAgent, path, country) {
   const filter = fingerprint ? { fingerprint } : ip ? { ip } : null;
   if (!filter) return;
 
   await DeviceLog.findOneAndUpdate(
     filter,
     {
-      $set: { ip, userAgent, path, lastSeen: new Date() },
+      $set: { ip, userAgent, path, lastSeen: new Date(), ...(country && { country }) },
       $setOnInsert: { fingerprint, firstSeen: new Date() },
       $inc: { requestsCount: 1 },
     },

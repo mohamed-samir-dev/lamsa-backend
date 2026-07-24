@@ -6,6 +6,7 @@ const deviceLogSchema = new mongoose.Schema(
     ip: { type: String, default: null },
     userAgent: { type: String, default: null },
     path: { type: String, default: null },
+    country: { type: String, default: null },
     firstSeen: { type: Date, default: Date.now },
     lastSeen: { type: Date, default: Date.now },
     requestsCount: { type: Number, default: 1 },

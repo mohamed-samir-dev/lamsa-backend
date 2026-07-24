@@ -63,7 +63,8 @@ app.post("/api/track", trackLimiter, async (req, res) => {
     const ip = getRealIP(req);
     const ua = typeof req.headers["user-agent"] === "string" ? req.headers["user-agent"].slice(0, 512) : null;
     const path = typeof req.body.path === "string" ? req.body.path.slice(0, 100) : "/cart";
-    await upsertDeviceLog(fp, ip, ua, path);
+    const country = typeof req.headers["cf-ipcountry"] === "string" ? req.headers["cf-ipcountry"].slice(0, 2) : null;
+    await upsertDeviceLog(fp, ip, ua, path, country);
     res.json({ ok: true });
   } catch {
     res.json({ ok: false });
