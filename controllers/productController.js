@@ -2,7 +2,7 @@ const Product = require("../models/Product");
 
 // Shared cache (per worker, but TTL prevents stale data)
 const cache = new Map();
-const CACHE_TTL = 60 * 1000;
+const CACHE_TTL = 10 * 1000;
 
 function getCached(key) {
   const entry = cache.get(key);
