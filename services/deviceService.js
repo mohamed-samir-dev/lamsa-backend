@@ -25,7 +25,11 @@ async function upsertDeviceLog(fingerprint, ip, userAgent, path, country) {
 }
 
 async function blockDevice({ fingerprint, ip, userAgent, reason, blockedBy }) {
-  return BlockedDevice.create({ fingerprint, ip, userAgent, reason, blockedBy, isActive: true });
+  const docs = [];
+  if (ip) docs.push({ ip, fingerprint: null, userAgent, reason, blockedBy, isActive: true });
+  if (fingerprint) docs.push({ fingerprint, ip: null, userAgent, reason, blockedBy, isActive: true });
+  if (docs.length > 1) return BlockedDevice.insertMany(docs);
+  return BlockedDevice.create(docs[0]);
 }
 
 async function unblockDevice(id) {

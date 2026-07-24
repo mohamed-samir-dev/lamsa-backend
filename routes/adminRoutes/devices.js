@@ -63,6 +63,13 @@ router.post("/devices/block", authMiddleware, async (req, res) => {
       reason: String(reason).slice(0, 200),
       blockedBy: req.admin?.email || "admin",
     });
+
+    // حذف السجل من سجل الزوار بعد الحظر
+    const query = {};
+    if (fingerprint) query.fingerprint = fingerprint;
+    else if (ip) query.ip = ip;
+    if (Object.keys(query).length) await DeviceLog.deleteMany(query);
+
     res.status(201).json({ success: true, record });
   } catch {
     res.status(500).json({ success: false, error: "خطأ في الخادم" });
