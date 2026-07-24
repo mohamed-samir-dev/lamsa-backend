@@ -53,14 +53,14 @@ router.get("/devices/blocked", authMiddleware, async (req, res) => {
 router.post("/devices/block", authMiddleware, async (req, res) => {
   try {
     const { fingerprint, ip, userAgent, reason } = req.body;
-    if (!reason || (!fingerprint && !ip)) {
-      return res.status(400).json({ success: false, error: "السبب والـ fingerprint أو IP مطلوبان" });
+    if (!fingerprint && !ip) {
+      return res.status(400).json({ success: false, error: "fingerprint أو IP مطلوب" });
     }
     const record = await blockDevice({
       fingerprint: fingerprint || null,
       ip: ip || null,
       userAgent: userAgent || null,
-      reason: String(reason).slice(0, 200),
+      reason: reason ? String(reason).slice(0, 200) : "—",
       blockedBy: req.admin?.email || "admin",
     });
 

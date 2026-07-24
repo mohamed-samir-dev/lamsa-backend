@@ -5,7 +5,7 @@ const blockedDeviceSchema = new mongoose.Schema(
     fingerprint: { type: String, default: null },
     ip: { type: String, default: null },
     userAgent: { type: String, default: null },
-    reason: { type: String, required: true, trim: true },
+    reason: { type: String, default: "—", trim: true },
     blockedBy: { type: String, default: "admin" },
     isActive: { type: Boolean, default: true },
   },

@@ -4,7 +4,7 @@ const DeviceLog = require("../models/DeviceLog");
 async function findBlockedDevice(fingerprint, ip) {
   const conditions = [];
   if (fingerprint) conditions.push({ fingerprint, isActive: true });
-  if (ip) conditions.push({ ip, isActive: true });
+  if (ip && ip !== "unknown") conditions.push({ ip, isActive: true });
   if (!conditions.length) return null;
   return BlockedDevice.findOne({ $or: conditions }).lean();
 }
