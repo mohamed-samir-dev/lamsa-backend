@@ -97,6 +97,22 @@ router.delete("/devices/blocked/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH /api/admin/devices/log/:id/label
+router.patch("/devices/log/:id/label", authMiddleware, async (req, res) => {
+  try {
+    const label = req.body.label ? String(req.body.label).slice(0, 100) : null;
+    const doc = await DeviceLog.findByIdAndUpdate(
+      req.params.id,
+      { label },
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ success: false, error: "السجل غير موجود" });
+    res.json({ success: true, doc });
+  } catch {
+    res.status(500).json({ success: false, error: "خطأ في الخادم" });
+  }
+});
+
 // DELETE /api/admin/devices/log/:id
 router.delete("/devices/log/:id", authMiddleware, async (req, res) => {
   try {
