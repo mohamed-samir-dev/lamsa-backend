@@ -97,6 +97,26 @@ router.delete("/devices/blocked/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/admin/devices/unblock-all
+router.post("/devices/unblock-all", authMiddleware, async (req, res) => {
+  try {
+    await BlockedDevice.updateMany({ isActive: true }, { isActive: false });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ success: false, error: "خطأ في الخادم" });
+  }
+});
+
+// DELETE /api/admin/devices/blocked/all
+router.delete("/devices/blocked/all", authMiddleware, async (req, res) => {
+  try {
+    await BlockedDevice.deleteMany({});
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ success: false, error: "خطأ في الخادم" });
+  }
+});
+
 // PATCH /api/admin/devices/log/label-by-identity
 router.patch("/devices/log/label-by-identity", async (req, res) => {
   try {

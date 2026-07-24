@@ -50,7 +50,7 @@ exports.getProducts = async (req, res) => {
 
     // Paginated listing with cache
     const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, parseInt(limit) || 20);
+    const limitNum = Math.min(500, parseInt(limit) || 20);
     const cacheKey = `products:${brand || ""}:${category || ""}:${selectFields}:${pageNum}:${limitNum}`;
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
