@@ -1,12 +1,4 @@
 require("dotenv").config();
-const cluster = require("cluster");
-const os = require("os");
-
-if (cluster.isPrimary) {
-  const numCPUs = os.cpus().length;
-  for (let i = 0; i < numCPUs; i++) cluster.fork();
-  cluster.on("exit", () => cluster.fork());
-} else {
 
 const path = require("path");
 const express = require("express");
@@ -50,7 +42,6 @@ app.get("/", (req, res) => {
   res.json({ message: "API is running..." });
 });
 
-
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Public track visit endpoint
@@ -84,6 +75,7 @@ app.get("/api/devices/check", deviceCheckLimiter, async (req, res) => {
     res.json({ blocked: false });
   }
 });
+
 // Cache middleware for product listing
 app.use("/api/products", checkBlockedDevice, (req, res, next) => {
   if (req.method === "GET") {
@@ -91,11 +83,10 @@ app.use("/api/products", checkBlockedDevice, (req, res, next) => {
   }
   next();
 }, productRoutes);
+
 const checkoutLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { ok: false, error: "طلبات كثيرة، حاول لاحقاً" } });
 app.use("/api/checkout", checkBlockedDevice, checkoutLimiter, checkoutRoutes);
 app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Worker ${process.pid} running on port ${PORT}`));
-
-} // end cluster worker
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
