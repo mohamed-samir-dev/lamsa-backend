@@ -13,10 +13,20 @@ async function upsertDeviceLog(fingerprint, ip, userAgent, path, country) {
   const filter = fingerprint ? { fingerprint } : ip ? { ip } : null;
   if (!filter) return;
 
+  // ابحث عن label موجود لنفس الـ fingerprint أو IP
+  let existingLabel = null;
+  const existing = await DeviceLog.findOne(filter, { label: 1 }).lean();
+  if (existing?.label) {
+    existingLabel = existing.label;
+  } else if (fingerprint && ip) {
+    const byIp = await DeviceLog.findOne({ ip }, { label: 1 }).lean();
+    if (byIp?.label) existingLabel = byIp.label;
+  }
+
   await DeviceLog.findOneAndUpdate(
     filter,
     {
-      $set: { ip, userAgent, path, lastSeen: new Date(), ...(country && { country }) },
+      $set: { ip, userAgent, path, lastSeen: new Date(), ...(country && { country }), ...(existingLabel && { label: existingLabel }) },
       $setOnInsert: { fingerprint, firstSeen: new Date() },
       $inc: { requestsCount: 1 },
     },
