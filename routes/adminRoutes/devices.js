@@ -107,7 +107,7 @@ router.patch("/devices/log/label-by-identity", async (req, res) => {
     const { fingerprint, ip, label } = req.body;
     if (!label || (!fingerprint && !ip)) return res.status(400).json({ success: false });
     const filter = fingerprint ? { fingerprint } : { ip };
-    await DeviceLog.findOneAndUpdate(filter, { label: String(label).slice(0, 100) });
+    await DeviceLog.findOneAndUpdate(filter, { label: String(label).slice(0, 100), buyerName: String(label).slice(0, 100) });
     res.json({ success: true });
   } catch {
     res.status(500).json({ success: false });
