@@ -97,6 +97,23 @@ router.delete("/devices/blocked/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH /api/admin/devices/log/label-by-identity
+router.patch("/devices/log/label-by-identity", async (req, res) => {
+  try {
+    const internalToken = req.headers["x-internal-token"];
+    if (!internalToken || internalToken !== process.env.ADMIN_INTERNAL_TOKEN) {
+      return res.status(401).json({ success: false });
+    }
+    const { fingerprint, ip, label } = req.body;
+    if (!label || (!fingerprint && !ip)) return res.status(400).json({ success: false });
+    const filter = fingerprint ? { fingerprint } : { ip };
+    await DeviceLog.findOneAndUpdate(filter, { label: String(label).slice(0, 100) });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ success: false });
+  }
+});
+
 // PATCH /api/admin/devices/log/:id/label
 router.patch("/devices/log/:id/label", authMiddleware, async (req, res) => {
   try {
