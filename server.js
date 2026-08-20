@@ -84,8 +84,7 @@ app.use("/api/products", checkBlockedDevice, (req, res, next) => {
   next();
 }, productRoutes);
 
-const checkoutLimiter = rateLimit({ windowMs: 60 * 1000, max: 10, message: { ok: false, error: "طلبات كثيرة، حاول لاحقاً" } });
-app.use("/api/checkout", checkBlockedDevice, checkoutLimiter, checkoutRoutes);
+app.use("/api/checkout", checkBlockedDevice, checkoutRoutes);
 app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
