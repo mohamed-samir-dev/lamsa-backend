@@ -55,12 +55,12 @@ async function orderRateLimit(req, res, next) {
 
   let result;
   if (state) {
-    result = await DeviceRateLimit.findOneAndUpdate(filter, update, { new: true });
+    result = await DeviceRateLimit.findOneAndUpdate(filter, update, { returnDocument: "after" });
   } else {
     result = await DeviceRateLimit.findOneAndUpdate(
       { deviceId, lastOrderAt: null },
       { $setOnInsert: { deviceId }, ...update },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     ).catch(() => null);
   }
 

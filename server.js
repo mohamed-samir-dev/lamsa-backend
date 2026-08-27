@@ -16,6 +16,7 @@ const { checkBlockedDevice } = require("./middlewares/checkBlockedDevice");
 connectDB();
 
 const app = express();
+app.set("trust proxy", 1);
 const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
   .split(",").map((o) => o.trim());
 
