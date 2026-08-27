@@ -13,6 +13,8 @@ const checkoutSchema = new mongoose.Schema(
         name: String,
         price: Number,
         quantity: Number,
+        color: String,
+        storage: String,
       },
     ],
     total: { type: Number, required: true },
